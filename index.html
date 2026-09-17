@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Traker Financiero</title>
+<meta name="description" content="Analiza tus ingresos y gastos desde tu hoja de Numbers, sin subir tus datos a ningún servidor." />
+<meta name="theme-color" content="#fcfcfb" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#1a1a19" media="(prefers-color-scheme: dark)" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-180.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Finanzas" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">💶 Traker Financiero <span id="file-name-label"></span></div>
+  <div class="topbar-actions">
+    <button class="icon-btn" id="theme-toggle" title="Cambiar tema" aria-label="Cambiar tema">🌓</button>
+    <button class="btn" id="reload-btn" style="display:none">Cargar otro archivo</button>
+  </div>
+</div>
+
+<!-- Upload screen -->
+<div class="upload-screen" id="upload-screen">
+  <div class="upload-card">
+    <h1>Tus finanzas, al momento</h1>
+    <p class="lead">Sube el archivo actualizado de tu hoja de cálculo para ver el análisis. No se guarda ni se envía a ningún servidor: todo se calcula en tu dispositivo.</p>
+
+    <div class="dropzone" id="dropzone">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 21h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2Z"/></svg>
+      <div class="dz-title">Toca para elegir tu archivo</div>
+      <div class="dz-sub">o arrástralo aquí · CSV o Excel (.xlsx)</div>
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls,.txt" hidden />
+    </div>
+
+    <div class="upload-error" id="upload-error"></div>
+
+    <div class="upload-hint">
+      <strong>¿Cómo exporto desde Numbers?</strong><br/>
+      En la app Numbers, abre tu hoja → toca <strong>⋯</strong> → <strong>Exportar</strong> → elige <strong>CSV</strong> o <strong>Excel</strong> → guarda en Archivos/iCloud Drive → vuelve aquí y selecciona ese archivo.
+    </div>
+    <div class="privacy-note">🔒 Tus datos nunca salen de este dispositivo</div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div class="dashboard" id="dashboard">
+
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <div class="filter-bar">
+    <select id="filter-month"><option value="">Todos los meses</option></select>
+    <select id="filter-cuenta"><option value="">Todas las cuentas</option></select>
+    <select id="filter-categoria"><option value="">Todas las categorías</option></select>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Ingresos vs. gastos por mes</div>
+    <div class="card-sub">Evolución mensual</div>
+    <div class="chart-box tall"><canvas id="chart-evolution"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Balance mensual</div>
+    <div class="card-sub">Ingresos − gastos, por mes</div>
+    <div class="chart-box"><canvas id="chart-balance"></canvas></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Gasto por categoría</div>
+      <div class="card-sub">En qué se va el dinero</div>
+      <div class="chart-box tall"><canvas id="chart-categoria"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Gasto por cuenta</div>
+      <div class="card-sub">Trade, Efectivo, Imagin…</div>
+      <div class="chart-box tall"><canvas id="chart-cuenta"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Cuándo gastas</div>
+    <div class="card-sub">Día de la semana × franja horaria (gasto total)</div>
+    <div id="heatmap-container"></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Gastos hormiga</div>
+      <div class="card-sub">Categorías de muchos gastos pequeños que suman más de lo que parece</div>
+      <div class="ant-list" id="ant-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 10 gastos</div>
+      <div class="card-sub">Tus movimientos más grandes</div>
+      <div class="table-wrap">
+        <table class="data-table" id="top-expenses-table">
+          <thead><tr><th>Concepto</th><th>Categoría</th><th class="num">Importe</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Movimientos</div>
+    <div class="card-sub" id="tx-count-label"></div>
+    <input type="text" class="search-input" id="tx-search" placeholder="Buscar por concepto o categoría…" />
+    <div class="table-wrap">
+      <table class="data-table" id="tx-table">
+        <thead>
+          <tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th>Categoría</th><th>Cuenta</th><th class="num">Importe</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="footer-note">Análisis calculado localmente en tu navegador · Traker Financiero</p>
+</div>
+
+<script src="js/vendor/papaparse.min.js"></script>
+<script src="js/vendor/xlsx.full.min.js"></script>
+<script src="js/vendor/chart.umd.min.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/analytics.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
